@@ -118,6 +118,7 @@
     <ClInclude Include="sdk\ienginevgui.h" />
     <ClInclude Include="sdk\interface.h" />
     <ClInclude Include="sdk\IServerPlugin.h" />
+    <ClInclude Include="sdk\ivdebugoverlay.h" />
     <ClInclude Include="sdk\math_pfns.h" />
     <ClInclude Include="sdk\modelloader.h" />
     <ClInclude Include="sdk\mouthinfo.h" />

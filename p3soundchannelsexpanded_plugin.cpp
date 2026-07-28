@@ -25,6 +25,7 @@
 #include "sdk/soundinfo.h"
 #include "sdk/threadtools.h"
 #include "sdk/snd_mix_buf.h"
+#include "sdk/ivdebugoverlay.h"
 
 #include "sdk/utlvector.h"
 #include "sdk/utllinkedlist.h"
@@ -141,6 +142,7 @@ ICvar* cvar = NULL;
 ISoundServices* g_pSoundServices = NULL;
 IClientEntityList* entitylist = NULL;
 IVEngineClient* engineclient = NULL;
+IVDebugOverlay* debugoverlay = NULL;
 IAudioDevice** pg_AudioDevice = NULL; // i believe audio device can change during runtime
 
 // global variables
@@ -180,13 +182,14 @@ int* pidsp_room = NULL;
 int* pidsp_player = NULL;
 int* pidsp_water = NULL;
 int* pidsp_spatial = NULL;
+int* pg_isoundmixer = NULL;
+soundmixer_t* pg_soundmixers = NULL;
 
 // functions
 CAudioSource* (*S_LoadSound)(CSfxTable * pSfx, channel_t * ch) = NULL;
 void (*S_SyncClockAdjust)() = NULL;
 void (*DSP_ClearState)() = NULL;
 void (*MIX_ClearAllPaintBuffers)(int SampleCount, bool clearFilters) = NULL;
-void (*CDebugOverlay_AddTextOverlay)(const Vector& origin, float flDuration, const char* text) = NULL;
 void (*S_Update_)( float mixAheadTime ) = NULL;
 void (*SND_Spatialize)(channel_t* ch) = NULL;
 void (*S_UpdateSoundFade)(void) = NULL;
@@ -221,6 +224,7 @@ bool CEmptyServerPlugin::Load( CreateInterfaceFn interfaceFactory, CreateInterfa
 	cvar = (ICvar*)interfaceFactory( CVAR_INTERFACE_VERSION, NULL );
 	entitylist = (IClientEntityList*)clientFactory( VCLIENTENTITYLIST_INTERFACE_VERSION, NULL );
 	engineclient = (IVEngineClient*)interfaceFactory( VENGINE_CLIENT_INTERFACE_VERSION, NULL );
+	debugoverlay = (IVDebugOverlay*)interfaceFactory( VDEBUG_OVERLAY_INTERFACE_VERSION, NULL );
 
 	// force snd_mix_async 1, so the players don't experience delay
 	ConVar* snd_mix_async = cvar->FindVar( "snd_mix_async" );
@@ -263,11 +267,6 @@ bool CEmptyServerPlugin::Load( CreateInterfaceFn interfaceFactory, CreateInterfa
 		CSigScan sig_DSP_ClearState;
 		sig_DSP_ClearState.Init( "\x53\x33\xDB\x38\x1D\xCC\xCC\xCC\xCC\x0F\x85\xBD\x00\x00\x00", "xxxxx????xxxxxx", 15 );
 		DSP_ClearState = decltype(DSP_ClearState)(sig_DSP_ClearState.sig_addr);
-
-		// CDebugOverlay::AddTextOverlay
-		CSigScan sig_CDebugOverlay_AddTextOverlay;
-		sig_CDebugOverlay_AddTextOverlay.Init( "\xE8\xCC\xCC\xCC\xCC\x84\xC0\x0F\x85\xDC\x00\x00\x00", "x????xxxxxxxx", 13 );
-		CDebugOverlay_AddTextOverlay = decltype(CDebugOverlay_AddTextOverlay)(sig_CDebugOverlay_AddTextOverlay.sig_addr);
 
 		// S_Update_
 		CSigScan sig_S_Update_;
@@ -587,6 +586,21 @@ bool CEmptyServerPlugin::Load( CreateInterfaceFn interfaceFactory, CreateInterfa
 			CSigScan sig_total_channels;
 			sig_total_channels.Init( "\x8B\x0D\xCC\xCC\xCC\xCC\xB8\x18\x00\x00\x00", "xx????xxxxx", 11 );
 			ptotal_channels = *(int**)( (uintptr_t)sig_total_channels.sig_addr + 2 );
+		}
+
+		// MXR_DebugShowMixVolumes
+		{
+			// mov eax, g_isoundmixer
+			// "\xA1\xCC\xCC\xCC\xCC\x55\x33\xED\x85\xC0", "x????xxxxx"
+			CSigScan sig_g_isoundmixer;
+			sig_g_isoundmixer.Init( "\xA1\xCC\xCC\xCC\xCC\x55\x33\xED\x85\xC0", "x????xxxxx", 10 );
+			pg_isoundmixer = *(int**)( (uintptr_t)sig_g_isoundmixer.sig_addr + 1 );
+
+			// mov eax, g_isoundmixer
+			// "\x05\xCC\xCC\xCC\xCC\x57\x33\xFF\x8D\xB4\x24\x98\x01\x00\x00", "x????xxxxxxxxxx"
+			CSigScan sig_g_soundmixers;
+			sig_g_soundmixers.Init( "\x05\xCC\xCC\xCC\xCC\x57\x33\xFF\x8D\xB4\x24\x98\x01\x00\x00", "x????xxxxxxxxxx", 15 );
+			pg_soundmixers = *(soundmixer_t**)( (uintptr_t)sig_g_soundmixers.sig_addr + 1 );
 		}
 
 		SETUP_HOOK( MIX_PaintChannels, "\x81\xEC\xA0\x01\x00", "xxxxx" );

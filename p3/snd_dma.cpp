@@ -5,6 +5,8 @@
 //===========================================================================//
 
 #include "../sdk/icliententitylist.h"
+#include "../sdk/ivdebugoverlay.h"
+#include "../sdk/icliententity.h"
 #include "../sdk/icommandline.h"
 #include "../sdk/soundservice.h"
 #include "../sdk/threadtools.h"
@@ -19,9 +21,10 @@
 #include "snd_channels.h"
 
 extern ICvar* cvar;
+extern IVEngineClient* engineclient;
+extern IVDebugOverlay* debugoverlay;
 extern ISoundServices* g_pSoundServices;
 extern IAudioDevice** pg_AudioDevice;
-extern IVEngineClient* engineclient;
 
 extern int* ptotal_channels;
 extern Vector* plistener_origin;
@@ -43,6 +46,8 @@ extern float* pg_DashboardMusicMixTarget;
 extern bool* ps_bIsListenerUnderwater;
 extern int* pg_snd_trace_count;
 extern CThreadMutex* pg_SndMutex;
+extern int* pg_isoundmixer;
+extern soundmixer_t* pg_soundmixers;
 
 extern channel_t channels[MAX_CHANNELS];
 extern CActiveChannels<MAX_CHANNELS> g_ActiveChannels;
@@ -939,8 +944,7 @@ void S_Update( const AudioState_t* pAudioState )
 			static ConVar* snd_visualize = cvar->FindVar( "snd_visualize" );
 			if ( snd_visualize->GetInt() )
 			{
-				extern void (*CDebugOverlay_AddTextOverlay)(const Vector& origin, float flDuration, const char* text);
-				CDebugOverlay_AddTextOverlay( ch->origin, 0.05f, ch->sfx->getname() );
+				debugoverlay->AddTextOverlay( ch->origin, 0.05f, ch->sfx->getname() );
 			}
 
 			total++;
@@ -1519,14 +1523,275 @@ void CEngineSoundClient_StopAllSounds( bool bClearBuffers )
 	S_StopAllSounds( bClearBuffers );
 }
 
+struct ClientClass
+{
+	void*			m_pCreateFn;
+	void*			m_pCreateEventFn;	// Only called for event objects.
+	const char*		m_pNetworkName;
+	void*			m_pRecvTable;
+	ClientClass*	m_pNext;
+	int				m_ClassID;	// Managed by the engine.
+};
+
+// get the client class name if an entity was specified
+const char* GetClientClassname( SoundSource soundsource )
+{
+	IClientEntity* pClientEntity = NULL;
+	if ( entitylist )
+	{
+		pClientEntity = entitylist->GetClientEntity( soundsource );
+		if ( pClientEntity )
+		{
+			ClientClass* pClientClass = pClientEntity->GetClientClass();
+			// check npc sounds 
+			if ( pClientClass )
+			{
+				return pClientClass->m_pNetworkName;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 void snd_dumpclientsounds( const ConCommand& args )
 {
-	DevWarning( "'snd_dumpclientsounds' command disabled temporarily, due to not being implemented. "
-				"If this is in a public release, report it to Grizzle!\n" );
+	con_nprint_t np;
+	np.time_to_live = 2.0f;
+	np.fixed_width_font = true;
+
+	int total = 0;
+
+	CChannelList list;
+	g_ActiveChannels.GetActiveChannels( list );
+	for ( int i = 0; i < list.Count(); i++ )
+	{
+		channel_t* ch = list.GetChannel( i );
+		if ( !ch->sfx )
+			continue;
+
+		unsigned int sampleCount = RemainingSamples( ch );
+		float timeleft = (float)sampleCount / (float)ch->sfx->pSource->SampleRate();
+		bool bLooping = ch->sfx->pSource->IsLooped();
+		const char* pszclassname = GetClientClassname( ch->soundsource );
+
+		Msg( "%02i %s l(%03d) c(%03d) r(%03d) rl(%03d) rr(%03d) vol(%03d) pos(%6d %6d %6d) timeleft(%f) looped(%d) %50s chan:%d ent(%03d):%s\n",
+			total + 1,
+			ch->flags.fromserver ? "SERVER" : "CLIENT",
+			(int)ch->fvolume[IFRONT_LEFT],
+			(int)ch->fvolume[IFRONT_CENTER],
+			(int)ch->fvolume[IFRONT_RIGHT],
+			(int)ch->fvolume[IREAR_LEFT],
+			(int)ch->fvolume[IREAR_RIGHT],
+			ch->master_vol,
+			(int)ch->origin[0],
+			(int)ch->origin[1],
+			(int)ch->origin[2],
+			timeleft,
+			bLooping,
+			ch->sfx->getname(),
+			ch->entchannel,
+			ch->soundsource,
+			pszclassname ? pszclassname : "NULL" );
+
+		total++;
+	}
+}
+
+struct debug_showvols_t
+{
+	char* psz;			// group name
+	int	  mixgroupid;	// groupid
+	float vol;			// group volume
+	float totalvol;		// total volume of all sounds playing in this group
+};
+
+// display routine for MXR_DebugShowMixVolumes
+#define MXR_DEBUG_INCY	(1.0/40.0)			// vertical text spacing
+#define MXR_DEBUG_GREENSTART 0.3			// start position on screen of bar
+
+#define MXR_DEBUG_MAXVOL		1.0			// max volume scale
+#define MXR_DEBUG_REDLIMIT		1.0			// volume limit into yellow
+#define MXR_DEBUG_YELLOWLIMIT	0.7			// volume limit into red
+
+#define MXR_DEBUG_VOLSCALE 48				// length of graph in characters
+#define MXR_DEBUG_CHAR			'-'			// bar character
+
+int g_debug_mxr_displaycount = 0;
+void MXR_DebugGraphMixVolumes( debug_showvols_t* groupvols, int cgroups )
+{
+	float flXpos, flYpos, flXposBar, duration;
+	int r, g, b, a;
+	int rb, gb, bb, ab;
+	flXpos = 0;
+	flYpos = 0;
+	char text[128];
+	char bartext[MXR_DEBUG_VOLSCALE * 3];
+
+	duration = 0.01;
+
+	g_debug_mxr_displaycount++;
+
+	if ( !(g_debug_mxr_displaycount % 10) )
+		return;		// only display every 10 frames
+
+
+	r = 96; g = 86; b = 226; a = 255; ab = 255;
+
+	// show volume, dsp_volume
+
+	static ConVar* volume = cvar->FindVar( "volume" );
+	_snprintf( text, 128, "Game Volume: %1.2f", volume->GetFloat() );
+	debugoverlay->AddScreenTextOverlay( flXpos, flYpos, duration, r, g, b, a, text );
+	flYpos += MXR_DEBUG_INCY;
+
+	static ConVar* dsp_volume = cvar->FindVar( "dsp_volume" );
+	_snprintf( text, 128, "DSP Volume: %1.2f", dsp_volume->GetFloat() );
+	debugoverlay->AddScreenTextOverlay( flXpos, flYpos, duration, r, g, b, a, text );
+	flYpos += MXR_DEBUG_INCY;
+
+	for ( int i = 0; i < cgroups; i++ )
+	{
+		// r += 64; g += 64; b += 16;
+
+		r = r % 255; g = g % 255; b = b % 255;
+
+		_snprintf( text, 128, "%s: %1.2f (%1.2f)", groupvols[i].psz,
+			groupvols[i].vol * (*pg_DuckScale), groupvols[i].totalvol * (*pg_DuckScale) );
+
+		debugoverlay->AddScreenTextOverlay( flXpos, flYpos, duration, r, g, b, a, text );
+
+		// draw volume bar graph
+
+		float vol = (groupvols[i].totalvol * (*pg_DuckScale)) / MXR_DEBUG_MAXVOL;
+
+		// draw first 70% green
+		float vol1 = 0.0;
+		float vol2 = 0.0;
+		float vol3 = 0.0;
+		int cbars;
+
+		vol1 = std::clamp( vol, 0.0f, 0.7f );
+		vol2 = std::clamp( vol, 0.0f, 0.95f );
+		vol3 = vol;
+
+		flXposBar = flXpos + MXR_DEBUG_GREENSTART;
+
+		if ( vol1 > 0.0 )
+		{
+			//flXposBar = flXpos + MXR_DEBUG_GREENSTART;
+
+			rb = 0; gb = 255; bb = 0;		// green bar
+			memset( bartext, 0, sizeof( bartext ) );
+
+			cbars = (int)((float)vol1 * (float)MXR_DEBUG_VOLSCALE);
+			cbars = std::clamp( cbars, 0, MXR_DEBUG_VOLSCALE * 3 - 1 );
+			memset( bartext, MXR_DEBUG_CHAR, cbars );
+
+			debugoverlay->AddScreenTextOverlay( flXposBar, flYpos, duration, rb, gb, bb, ab, bartext );
+		}
+
+
+		// yellow bar
+		if ( vol2 > MXR_DEBUG_YELLOWLIMIT )
+		{
+			rb = 255; gb = 255; bb = 0;
+			memset( bartext, 0, sizeof( bartext ) );
+
+			cbars = (int)((float)vol2 * (float)MXR_DEBUG_VOLSCALE);
+			cbars = std::clamp( cbars, 0, MXR_DEBUG_VOLSCALE * 3 - 1 );
+			memset( bartext, MXR_DEBUG_CHAR, cbars );
+
+			debugoverlay->AddScreenTextOverlay( flXposBar, flYpos, duration, rb, gb, bb, ab, bartext );
+		}
+
+		// red bar
+		if ( vol3 > MXR_DEBUG_REDLIMIT )
+		{
+			//flXposBar = flXpos + MXR_DEBUG_REDSTART;
+			rb = 255; gb = 0; bb = 0;
+			memset( bartext, 0, sizeof( bartext ) );
+
+			cbars = (int)((float)vol3 * (float)MXR_DEBUG_VOLSCALE);
+			cbars = std::clamp( cbars, 0, MXR_DEBUG_VOLSCALE * 3 - 1 );
+			memset( bartext, MXR_DEBUG_CHAR, cbars );
+
+			debugoverlay->AddScreenTextOverlay( flXposBar, flYpos, duration, rb, gb, bb, ab, bartext );
+		}
+
+		flYpos += MXR_DEBUG_INCY;
+	}
 }
 
 void MXR_DebugShowMixVolumes( void )
 {
-	DevWarning( "'MXR_DebugShowMixVolumes' function disabled temporarily, due to not being implemented. "
-				"If this is in a public release, report it to Grizzle!\n" );
+	static ConVar* snd_showmixer = cvar->FindVar( "snd_showmixer" );
+	if ( snd_showmixer->GetInt() == 0 )
+		return;
+
+	// for the current soundmixer:
+	// make a totalvolume bucket for each mixgroup type in the soundmixer.
+	// for every active channel, add its spatialized volume to 
+	// totalvolume bucket for that channel's selected mixgroup
+
+	// display all mixgroup/volume/totalvolume values as horizontal bars
+
+	debug_showvols_t groupvols[CMXRGROUPMAX];
+
+	int i;
+	int cgroups = 0;
+
+	if ( (*pg_isoundmixer) < 0 )
+	{
+		DevMsg( "No sound mixer selected!" );
+		return;
+	}
+
+	soundmixer_t* pmixer = &pg_soundmixers[(*pg_isoundmixer)];
+
+	// for every entry in mapMixgroupidToValue which is not -1, 
+	// set up groupvols
+
+	for ( i = 0; i < CMXRGROUPMAX; i++ )
+	{
+		if ( pmixer->mapMixgroupidToValue[i] >= 0 )
+		{
+			groupvols[cgroups].mixgroupid = i;
+			groupvols[cgroups].psz = MXR_GetGroupnameFromId( i );
+			groupvols[cgroups].totalvol = 0.0;
+			groupvols[cgroups].vol = pmixer->mapMixgroupidToValue[i];
+			cgroups++;
+		}
+	}
+
+	// for every active channel, get its volume and 
+	// the selected mixgroupid, add to groupvols totalvol
+
+	CChannelList list;
+	int ch_idx;
+	channel_t* pchan;
+
+	g_ActiveChannels.GetActiveChannels( list );
+
+	for ( i = 0; i < list.Count(); i++ )
+	{
+		ch_idx = list.GetChannelIndex( i );
+		pchan = &channels[ch_idx];
+		if ( pchan->last_vol > 0.0 )
+		{
+			// find entry in groupvols
+			for ( int j = 0; j < CMXRGROUPMAX; j++ )
+			{
+				if ( pchan->last_mixgroupid == groupvols[j].mixgroupid )
+				{
+					groupvols[j].totalvol += pchan->last_vol;
+					break;
+				}
+			}
+		}
+	}
+
+	// groupvols is now fully initialized - just display it
+
+	MXR_DebugGraphMixVolumes( groupvols, cgroups );
 }

@@ -5,6 +5,7 @@
 //=============================================================================//
 
 #include "../sdk/icliententitylist.h"
+#include "../sdk/ivdebugoverlay.h"
 #include "../sdk/icliententity.h"
 #include "../sdk/icommandline.h"
 #include "../sdk/soundservice.h"
@@ -19,6 +20,7 @@
 #include <algorithm>
 
 extern ICvar* cvar;
+extern IVDebugOverlay* debugoverlay;
 extern ISoundServices* g_pSoundServices;
 extern IAudioDevice** pg_AudioDevice;
 

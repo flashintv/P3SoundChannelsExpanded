@@ -58,6 +58,7 @@ enum SoundFlags_t
 	SND_DO_NOT_OVERWRITE_EXISTING_ON_CHANNEL = (1 << 10),
 };
 
+#define CMXRGROUPMAX 64
 #define CMXRNAMEMAX 32
 struct grouprule_t
 {
@@ -79,6 +80,12 @@ struct grouprule_t
 	// and causes_ducking is enabled.
 	float			duck_target_vol;			// target volume while ducking	
 	float			duck_ramp_val;				// current value of ramp - moves towards duck_target_vol
+};
+
+struct soundmixer_t
+{
+	char	szsoundmixer[CMXRNAMEMAX];			// name of this soundmixer
+	float	mapMixgroupidToValue[CMXRGROUPMAX];	// sparse array of mix group values for this soundmixer
 };
 
 //
