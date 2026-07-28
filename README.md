@@ -1,5 +1,6 @@
 # P3SoundChannelsExpanded
 Written to fix an issue where being fired at by more than a couple of enemies caused all sounds to cut out.
+
 Code first started simple with 2 detours and a lot of memory patching, but then delved into madness because I realized that a ton of functions had instances of the CChannelList class which stores the channel list with a fixed-size buffer inside of it.
 
 ## Showcase
