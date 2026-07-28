@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="p3soundchannelsexpanded_plugin.cpp" />
+    <ClCompile Include="p3\common.cpp">
+      <Filter>p3</Filter>
+    </ClCompile>
+    <ClCompile Include="sourcemod\sigscan.cpp">
+      <Filter>sourcemod</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\interface.cpp">
+      <Filter>sdk\tier1</Filter>
+    </ClCompile>
+    <ClCompile Include="safetyhook\Zydis.c">
+      <Filter>safetyhook</Filter>
+    </ClCompile>
+    <ClCompile Include="safetyhook\safetyhook.cpp">
+      <Filter>safetyhook</Filter>
+    </ClCompile>
+    <ClCompile Include="p3\snd_dma.cpp">
+      <Filter>p3</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\vector.cpp">
+      <Filter>sdk\mathlib</Filter>
+    </ClCompile>
+    <ClCompile Include="p3\snd_mix.cpp">
+      <Filter>p3</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\mathlib_base.cpp">
+      <Filter>sdk\mathlib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="sdk\dbg.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\icommandline.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\ienginereplay.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\icvar.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\iconvar.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\ienginevgui.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="p3\common.h">
+      <Filter>p3</Filter>
+    </ClInclude>
+    <ClInclude Include="sourcemod\sigscan.h">
+      <Filter>sourcemod</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\vgui_baseui_interface.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\precache.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\networkstringtabledefs.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\modelloader.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\IServerPlugin.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interface.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\refcount.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\threadtools.h">
+      <Filter>sdk\tier0</Filter>
+    </ClInclude>
+    <ClInclude Include="safetyhook\safetyhook.hpp">
+      <Filter>safetyhook</Filter>
+    </ClInclude>
+    <ClInclude Include="safetyhook\Zydis.h">
+      <Filter>safetyhook</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlvector.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlmemory.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlblockmemory.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\bitvec.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utllinkedlist.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlrbtree.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlfixedmemory.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="p3\snd_channels.h">
+      <Filter>p3</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\vector.h">
+      <Filter>sdk\mathlib</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\vector2d.h">
+      <Filter>sdk\mathlib</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\math_pfns.h">
+      <Filter>sdk\mathlib</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\soundservice.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\snd_device.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\snd_audio_source.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\icliententitylist.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\mouthinfo.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\cdll_int.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\icliententity.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\snd_mix_buf.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\utlmap.h">
+      <Filter>sdk\tier1</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\vcrmode.h">
+      <Filter>sdk\tier0</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\soundinfo.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="p3">
+      <UniqueIdentifier>{6173821e-9e73-4b12-9510-3d52b94d117e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk">
+      <UniqueIdentifier>{baa103e9-2451-4d2a-baf3-bf31f1a4feb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sourcemod">
+      <UniqueIdentifier>{cc7f4241-ad09-4ea8-83c4-2e517b699465}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\tier1">
+      <UniqueIdentifier>{fa47be53-6a5f-49bc-83af-33f3b47a5940}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\tier0">
+      <UniqueIdentifier>{3ec093bf-75b8-426c-bb30-214ebf9f8fcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="safetyhook">
+      <UniqueIdentifier>{92eee60f-45a9-4899-8718-24f05a2086d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\mathlib">
+      <UniqueIdentifier>{5cd718de-c5e0-47f9-be96-b86fda0d360e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

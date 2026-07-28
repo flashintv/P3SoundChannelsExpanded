@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{2b6e858f-3d1c-4977-be38-297901551cbe}</ProjectGuid>
+    <RootNamespace>P3SoundChannelsExpanded</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetName>p3soundchannelsexpanded</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetName>p3soundchannelsexpanded</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_ALLOW_KEYWORD_MACROS;ZYDIS_STATIC_BUILD;_DEBUG;P3SOUNDCHANNELSEXPANDED_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>safetyhook;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>delayimp.lib;sdk/tier0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/DELAYLOAD:tier0.dll %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" "G:\SteamLibrary\steamapps\common\Postal III\p3\addons\$(TargetFileName)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_ALLOW_KEYWORD_MACROS;ZYDIS_STATIC_BUILD;NDEBUG;P3SOUNDCHANNELSEXPANDED_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>safetyhook;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>delayimp.lib;sdk/tier0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/DELAYLOAD:tier0.dll %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" "G:\SteamLibrary\steamapps\common\Postal III\p3\addons\$(TargetFileName)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="p3\common.h" />
+    <ClInclude Include="p3\snd_channels.h" />
+    <ClInclude Include="safetyhook\safetyhook.hpp" />
+    <ClInclude Include="safetyhook\Zydis.h" />
+    <ClInclude Include="sdk\bitvec.h" />
+    <ClInclude Include="sdk\cdll_int.h" />
+    <ClInclude Include="sdk\dbg.h" />
+    <ClInclude Include="sdk\icliententity.h" />
+    <ClInclude Include="sdk\icliententitylist.h" />
+    <ClInclude Include="sdk\icommandline.h" />
+    <ClInclude Include="sdk\iconvar.h" />
+    <ClInclude Include="sdk\icvar.h" />
+    <ClInclude Include="sdk\ienginereplay.h" />
+    <ClInclude Include="sdk\ienginevgui.h" />
+    <ClInclude Include="sdk\interface.h" />
+    <ClInclude Include="sdk\IServerPlugin.h" />
+    <ClInclude Include="sdk\math_pfns.h" />
+    <ClInclude Include="sdk\modelloader.h" />
+    <ClInclude Include="sdk\mouthinfo.h" />
+    <ClInclude Include="sdk\networkstringtabledefs.h" />
+    <ClInclude Include="sdk\precache.h" />
+    <ClInclude Include="sdk\refcount.h" />
+    <ClInclude Include="sdk\snd_audio_source.h" />
+    <ClInclude Include="sdk\snd_device.h" />
+    <ClInclude Include="sdk\snd_mix_buf.h" />
+    <ClInclude Include="sdk\soundinfo.h" />
+    <ClInclude Include="sdk\soundservice.h" />
+    <ClInclude Include="sdk\threadtools.h" />
+    <ClInclude Include="sdk\utlblockmemory.h" />
+    <ClInclude Include="sdk\utlfixedmemory.h" />
+    <ClInclude Include="sdk\utllinkedlist.h" />
+    <ClInclude Include="sdk\utlmap.h" />
+    <ClInclude Include="sdk\utlmemory.h" />
+    <ClInclude Include="sdk\utlrbtree.h" />
+    <ClInclude Include="sdk\utlvector.h" />
+    <ClInclude Include="sdk\vcrmode.h" />
+    <ClInclude Include="sdk\vector.h" />
+    <ClInclude Include="sdk\vector2d.h" />
+    <ClInclude Include="sdk\vgui_baseui_interface.h" />
+    <ClInclude Include="sourcemod\sigscan.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="p3soundchannelsexpanded_plugin.cpp" />
+    <ClCompile Include="p3\common.cpp" />
+    <ClCompile Include="p3\snd_dma.cpp" />
+    <ClCompile Include="p3\snd_mix.cpp" />
+    <ClCompile Include="safetyhook\safetyhook.cpp" />
+    <ClCompile Include="safetyhook\Zydis.c" />
+    <ClCompile Include="sdk\interface.cpp" />
+    <ClCompile Include="sdk\mathlib_base.cpp" />
+    <ClCompile Include="sdk\vector.cpp" />
+    <ClCompile Include="sourcemod\sigscan.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
