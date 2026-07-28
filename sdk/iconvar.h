@@ -153,6 +153,34 @@ class ConCommandBase
 	// FIXME: Remove when ConVar changes are done
 	friend class CDefaultCvar;
 
+public:
+	virtual						~ConCommandBase( void ) = 0;
+
+	virtual	bool				IsCommand( void ) const = 0;
+
+	// Check flag
+	virtual bool				IsFlagSet( int flag ) const = 0;
+	// Set flag
+	virtual void				AddFlags( int flags ) = 0;
+
+	// Return name of cvar
+	virtual const char* GetName( void ) const = 0;
+
+	// Return help text for cvar
+	virtual const char* GetHelpText( void ) const = 0;
+
+	virtual bool				IsRegistered( void ) const = 0;
+
+	// Returns the DLL identifier
+	virtual int	GetDLLIdentifier() const = 0;
+
+protected:
+	virtual void				Create( const char* pName, const char* pHelpString = 0,
+		int flags = 0 ) = 0;
+
+	// Used internally by OneTimeInit to initialize/shutdown
+	virtual void				Init() = 0;
+
 private:
 	// Next ConVar in chain
 	// Prior to register, it points to the next convar in the DLL.
@@ -353,7 +381,6 @@ private:
 	virtual void				Init() = 0;
 
 private:
-
 	// This either points to "this" or it points to the original declaration of a ConVar.
 	// This allows ConVars to exist in separate modules, and they all use the first one to be declared.
 	// m_pParent->m_pParent must equal m_pParent (ie: m_pParent must be the root, or original, ConVar).
@@ -388,7 +415,7 @@ private:
 //-----------------------------------------------------------------------------
 FORCEINLINE_CVAR float ConVar::GetFloat(void) const
 {
-	return m_fValue;//m_pParent->m_fValue;
+	return m_pParent->m_fValue;
 }
 
 //-----------------------------------------------------------------------------
@@ -397,7 +424,7 @@ FORCEINLINE_CVAR float ConVar::GetFloat(void) const
 //-----------------------------------------------------------------------------
 FORCEINLINE_CVAR int ConVar::GetInt(void) const
 {
-	return m_nValue;//m_pParent->m_nValue;
+	return m_pParent->m_nValue;
 }
 
 
@@ -410,7 +437,6 @@ FORCEINLINE_CVAR const char* ConVar::GetString(void) const
 	if (m_nFlags & FCVAR_NEVER_AS_STRING)
 		return "FCVAR_NEVER_AS_STRING";
 
-	//return (m_pParent->m_pszString) ? m_pParent->m_pszString : "";
-	return (m_pszString) ? m_pszString : "";
+	return (m_pParent->m_pszString) ? m_pParent->m_pszString : "";
 }
 #endif // CONVAR_H

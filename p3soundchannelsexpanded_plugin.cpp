@@ -214,13 +214,20 @@ struct SndInfo_t;
 
 bool CEmptyServerPlugin::Load( CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory )
 {
+	// grab the client interface factory so we can fetch entitylist
+	CreateInterfaceFn clientFactory = (CreateInterfaceFn)GetProcAddress( GetModuleHandle( "client.dll" ), CREATEINTERFACE_PROCNAME );
+
 	// interfaces
 	cvar = (ICvar*)interfaceFactory( CVAR_INTERFACE_VERSION, NULL );
-	entitylist = (IClientEntityList*)interfaceFactory( VCLIENTENTITYLIST_INTERFACE_VERSION, NULL );
+	entitylist = (IClientEntityList*)clientFactory( VCLIENTENTITYLIST_INTERFACE_VERSION, NULL );
 	engineclient = (IVEngineClient*)interfaceFactory( VENGINE_CLIENT_INTERFACE_VERSION, NULL );
 
-	// set count to 0
-	g_ActiveChannels.Init();
+	// force snd_mix_async 1, so the players don't experience delay
+	ConVar* snd_mix_async = cvar->FindVar( "snd_mix_async" );
+	snd_mix_async->AddFlags( FCVAR_DEVELOPMENTONLY );
+	snd_mix_async->AddFlags( FCVAR_HIDDEN );
+	snd_mix_async->SetValue( 1 );
+	cvar->UnregisterConCommand( snd_mix_async );
 
 	// signature scanning
 	{
@@ -636,7 +643,7 @@ bool CEmptyServerPlugin::Load( CreateInterfaceFn interfaceFactory, CreateInterfa
 			std::ignore = hook.enable();
 	}
 
-	// Fully initialized!
+	// Fully initialyep nowized!
 	ConColorMsg(Color(0, 122, 122), "Initialized P3SoundChannelsExpanded plugin.\n");
 	
 	return true;

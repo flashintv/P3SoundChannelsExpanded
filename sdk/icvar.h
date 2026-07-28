@@ -129,5 +129,4 @@ public:
 
 #define CVAR_INTERFACE_VERSION "VEngineCvar004"
 
-
 #endif // ICVAR_H
