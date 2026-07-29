@@ -52,6 +52,9 @@ extern soundmixer_t* pg_soundmixers;
 extern channel_t channels[MAX_CHANNELS];
 extern CActiveChannels<MAX_CHANNELS> g_ActiveChannels;
 
+// Music related code Postal 3 added
+static CUtlMap<FileNameHandle_t, int> s_MusicSampleTree( 0, 0, DefLessFunc( FileNameHandle_t ) );
+
 float	DSP_ROOM_MIX = 1.0;	// mix volume of dsp_room sounds when added back to 'dry' sounds
 float	DSP_NOROOM_MIX = 1.0;	// mix volume of facing + facing away sounds. added to dsp_room_mix sounds
 
@@ -222,7 +225,8 @@ channel_t* SND_StealDynamicChannel( SoundSource soundsource, int entchannel, con
 		if ( ch->activeIndex )
 		{
 			// channel CHAN_AUTO never overrides sounds on same channel
-			if ( entchannel != CHAN_AUTO )
+			// entchannel != CHAN_WEAPON added by Postal 3
+			if ( entchannel != CHAN_AUTO && entchannel != CHAN_WEAPON )
 			{
 				int checkChannel = entchannel;
 				if ( checkChannel == -1 )
@@ -323,7 +327,7 @@ channel_t* SND_StealDynamicChannel( SoundSource soundsource, int entchannel, con
 			int maxVolume = ChannelGetMaxVol( ch );
 			if ( maxVolume < 5 )
 			{
-				//Msg("Sound quiet, stole %s for %s\n", ch->sfx->getname(), sfx->getname() );
+				Msg("Sound quiet, stole %s for %s\n", ch->sfx->getname(), sfx->getname() );
 				return ch;
 			}
 
@@ -352,7 +356,7 @@ channel_t* SND_StealDynamicChannel( SoundSource soundsource, int entchannel, con
 	}
 	if ( first_to_die >= 0 )
 	{
-		//Msg("Stole %s, timeleft %d\n", channels[first_to_die].sfx->getname(), life_left );
+		Msg("Stole %s, timeleft %d\n", channels[first_to_die].sfx->getname(), life_left );
 		return &channels[first_to_die];
 	}
 
@@ -398,6 +402,9 @@ void S_StopAllSounds( bool bClear )
 
 	if ( !(*pg_AudioDevice)->IsActive() )
 		return;
+
+	// Trashmasters code
+	s_MusicSampleTree.RemoveAll();
 
 	*ptotal_channels = MAX_DYNAMIC_CHANNELS;	// no statics
 
@@ -722,6 +729,7 @@ int S_AlterChannel( int soundsource, int entchannel, CSfxTable* sfx, int vol, in
 				S_FreeChannel( &channels[ch_idx] );
 			}
 
+			// Doesn't appear in Postal 3 engine, but it makes so that the sound doesn't duplicate.
 			if ( (flags & SND_IGNORE_NAME) == 0 )
 				return TRUE;
 			else
@@ -908,8 +916,9 @@ void S_Update( const AudioState_t* pAudioState )
 			if ( snd_surround->GetInt() < 4 )
 			{
 				// made into engineclient calls
-				engineclient->Con_NXPrintf( &np, "%02i l(%03d) r(%03d) vol(%03d) ent(%03d) pos(%6d %6d %6d) timeleft(%f) looped(%d) %50s",
+				engineclient->Con_NXPrintf( &np, "%02i ch(%03i) l(%03d) r(%03d) vol(%03d) ent(%03d) pos(%6d %6d %6d) timeleft(%f) looped(%d) %50s",
 					total + 1,
+					i,
 					(int)ch->fvolume[IFRONT_LEFT],
 					(int)ch->fvolume[IFRONT_RIGHT],
 					ch->master_vol,
@@ -924,8 +933,9 @@ void S_Update( const AudioState_t* pAudioState )
 			else
 			{
 				// made into engineclient calls
-				engineclient->Con_NXPrintf( &np, "%02i l(%03d) c(%03d) r(%03d) rl(%03d) rr(%03d) vol(%03d) ent(%03d) pos(%6d %6d %6d) timeleft(%f) looped(%d) %50s",
+				engineclient->Con_NXPrintf( &np, "%02i ch(%03i) l(%03d) c(%03d) r(%03d) rl(%03d) rr(%03d) vol(%03d) ent(%03d) pos(%6d %6d %6d) timeleft(%f) looped(%d) %50s",
 					total + 1,
+					i,
 					(int)ch->fvolume[IFRONT_LEFT],
 					(int)ch->fvolume[IFRONT_CENTER],
 					(int)ch->fvolume[IFRONT_RIGHT],
@@ -1500,6 +1510,18 @@ int S_StartStaticSound( StartSoundParams_t& params )
 
 			return 0;
 		}
+
+		// Trashmasters code
+		unsigned short key = s_MusicSampleTree.Find( ch->sfx->GetFileNameHandle() );
+		if ( key != s_MusicSampleTree.InvalidIndex() )
+		{
+			ch->pMixer->SkipSamples(
+				ch, 
+				s_MusicSampleTree[key], 
+				ch->sfx->pSource->SampleRate(), 
+				0 );
+			s_MusicSampleTree.Remove( ch->sfx->GetFileNameHandle() );
+		}
 	}
 
 	g_pSoundServices->OnSoundStarted( ch->guid, params, sndname );
@@ -1518,9 +1540,61 @@ int S_StartStaticSound( StartSoundParams_t& params )
 	return ch->guid;
 }
 
+// Pretty exact same code as S_StopAllSounds, but has an extra check for S_IsMusic in the middle of it.
 void CEngineSoundClient_StopAllSounds( bool bClearBuffers )
 {
-	S_StopAllSounds( bClearBuffers );
+	THREAD_LOCK_SOUND();
+	int		i;
+
+	if ( !(*pg_AudioDevice) )
+		return;
+
+	if ( !(*pg_AudioDevice)->IsActive() )
+		return;
+
+	// Trashmasters code
+	s_MusicSampleTree.RemoveAll();
+
+	*ptotal_channels = MAX_DYNAMIC_CHANNELS;	// no statics
+
+	CChannelList list;
+	g_ActiveChannels.GetActiveChannels( list );
+	for ( i = 0; i < list.Count(); i++ )
+	{
+		channel_t* pChannel = list.GetChannel( i );
+
+		char nameBuf[MAX_PATH];
+		const char* pName = "Unknown";
+		if ( pChannel->sfx )
+		{
+			strncpy( nameBuf, pChannel->sfx->getname(), sizeof( nameBuf ) - 1 );
+			nameBuf[sizeof( nameBuf ) - 1] = '\0';
+		}
+		DevMsg( 1, "Stopping: Channel:%2d %s\n", list.GetChannelIndex( i ), pName );
+
+		// Trashmasters code
+		if ( S_IsMusic( pChannel ) )
+		{
+			s_MusicSampleTree.InsertOrReplace( 
+				pChannel->sfx->GetFileNameHandle(),
+				pChannel->pMixer->GetSamplePosition() );
+		}
+
+		S_FreeChannel( pChannel );
+	}
+
+	memset( channels, 0, MAX_CHANNELS * sizeof( channel_t ) );
+
+	if ( bClearBuffers )
+	{
+		S_ClearBuffer();
+	}
+
+	// Clear any remaining soundfade
+	memset( psoundfade, 0, sizeof( soundfade_t ) );
+
+	(*pg_AudioDevice)->StopAllSounds();
+	Assert( g_ActiveChannels.GetActiveCount() == 0 );
 }
 
 struct ClientClass
